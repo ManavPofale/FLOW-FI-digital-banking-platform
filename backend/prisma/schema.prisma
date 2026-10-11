@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  LOAN_AGENT
+  ADMIN
+  MERCHANT
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  phone          String?        @unique
+  password_hash  String
+  role           Role           @default(CUSTOMER)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  profile        Profile?
+  wallet         Wallet?
+  refresh_tokens RefreshToken[]
+  kyc            KYC?
+  loans          Loan[]
+}
+
+model Profile {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  user       User     @relation(fields: [user_id], references: [id])
+  first_name String?
+  last_name  String?
+  avatar_url String?
+  trust_score Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model Loan {
+  id            String     @id @default(uuid())
+  user_id       String
+  user          User       @relation(fields: [user_id], references: [id])
+  amount        Float
+  interest_rate Float
+  term_months   Int
+  emi           Float
+  status        LoanStatus @default(PENDING)
+  applied_at    DateTime   @default(now())
+  approved_at   DateTime?
+}
+
+model Wallet {
+  id           String        @id @default(uuid())
+  user_id      String        @unique
+  user         User          @relation(fields: [user_id], references: [id])
+  balance      Float         @default(0)
+  transactions Transaction[]
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  wallet_id   String
+  wallet      Wallet   @relation(fields: [wallet_id], references: [id])
+  amount      Float
+  type        String   // e.g., CREDIT, DEBIT
+  description String?
+  created_at  DateTime @default(now())
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id])
+  created_at DateTime @default(now())
+  expires_at DateTime
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model KYC {
+  id           String      @id @default(uuid())
+  user_id      String      @unique
+  user         User        @relation(fields: [user_id], references: [id])
+  status       KYCStatus   @default(PENDING)
+  submitted_at DateTime    @default(now())
+  verified_at  DateTime?
+  documents    Document[]
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  kyc_id     String
+  kyc        KYC      @relation(fields: [kyc_id], references: [id])
+  type       String   // e.g., PAN, AADHAAR
+  file_url   String
+  created_at DateTime @default(now())
+}
+
